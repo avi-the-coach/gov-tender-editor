@@ -25,16 +25,18 @@
 
 ## התקנה והפעלה
 
+**Windows:** לחץ פעמיים על `start.bat` — מתקין תלויות אוטומטית אם צריך, ואז מפעיל הכל ופותח דפדפן.
+
+**Mac / Linux:**
 ```bash
 # התקנה (חד-פעמי)
 cd scraper-service && npm install && cd ..
 cd tender-editor && npm install && cd ..
 
 # הפעלה
-npm run dev
+cd tender-editor && npm run dev &
+node scraper-service/index.js
 ```
-
-**Windows — אפשרות מהירה:** לחץ פעמיים על `start.bat`
 
 פתח: **http://localhost:5173**
 

@@ -1,46 +1,56 @@
 @echo off
 echo ============================================
-echo   Gov Tender Editor - Starting...
+echo   Gov Tender Editor
 echo ============================================
+echo.
 
-:: Create logs dir
-if not exist logs mkdir logs
+:: ── Install dependencies if needed ──────────────────────────────────────────
 
-:: Read port from config.json
-for /f "tokens=*" %%a in ('node -e "try{console.log(require('./config.json').tenderEditor.port)}catch(e){console.log(5173)}"') do set PORT=%%a
+if not exist "scraper-service\node_modules" (
+    echo [Setup] Installing scraper-service dependencies...
+    pushd scraper-service
+    npm install
+    popd
+    echo.
+)
 
-:: Kill previous instances (only node.exe on our dev ports)
-echo Checking for existing instances...
+if not exist "tender-editor\node_modules" (
+    echo [Setup] Installing tender-editor dependencies...
+    pushd tender-editor
+    npm install
+    popd
+    echo.
+)
+
+:: ── Kill any previous instances on our ports ────────────────────────────────
+
 for /f "tokens=5" %%p in ('netstat -ano 2^>nul ^| findstr ":3001 " ^| findstr "LISTENING"') do (
-    powershell -Command "if ((Get-Process -Id %%p -ErrorAction SilentlyContinue).ProcessName -eq 'node') { Stop-Process -Id %%p -Force; Write-Host '[OK] Killed old scraper (PID %%p)' } else { Write-Host '[SKIP] Port 3001 used by non-node process - not killing' }"
+    powershell -Command "if ((Get-Process -Id %%p -ErrorAction SilentlyContinue).ProcessName -eq 'node') { Stop-Process -Id %%p -Force }" 2>nul
 )
-for /f "tokens=5" %%p in ('netstat -ano 2^>nul ^| findstr ":%PORT% " ^| findstr "LISTENING"') do (
-    powershell -Command "if ((Get-Process -Id %%p -ErrorAction SilentlyContinue).ProcessName -eq 'node') { Stop-Process -Id %%p -Force; Write-Host '[OK] Killed old frontend (PID %%p)' } else { Write-Host '[SKIP] Port %PORT% used by non-node process - not killing' }"
+for /f "tokens=5" %%p in ('netstat -ano 2^>nul ^| findstr ":5173 " ^| findstr "LISTENING"') do (
+    powershell -Command "if ((Get-Process -Id %%p -ErrorAction SilentlyContinue).ProcessName -eq 'node') { Stop-Process -Id %%p -Force }" 2>nul
 )
-timeout /t 1 /nobreak >nul
 
-:: Start backend in new window with logging
-echo Starting scraper-service...
-start "Scraper Service" powershell -ExecutionPolicy Bypass -NoExit -Command "Set-Location '%CD%'; Start-Transcript -Path '%CD%\logs\scraper.log' -Append; npm run dev:backend; Stop-Transcript"
+:: ── Start services ───────────────────────────────────────────────────────────
 
-:: Start frontend (Vite) in new window with logging
-echo Starting frontend...
-start "Frontend (Vite)" powershell -ExecutionPolicy Bypass -NoExit -Command "Set-Location '%CD%'; Start-Transcript -Path '%CD%\logs\frontend.log' -Append; npm run dev:frontend; Stop-Transcript"
+echo Starting services...
+start "Scraper Service" /d "%CD%" cmd /k "node scraper-service\index.js"
+start "Frontend (Vite)"  /d "%CD%\tender-editor" cmd /k "npm run dev"
 
-:: Wait and open browser
+:: ── Open browser ─────────────────────────────────────────────────────────────
+
 echo Waiting for services to start...
 timeout /t 5 /nobreak >nul
-echo Opening browser at http://localhost:%PORT%
-set CHROME_PATH="C:\Program Files\Google\Chrome\Application\chrome.exe"
-if not exist %CHROME_PATH% set CHROME_PATH="C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
-if exist %CHROME_PATH% (
-    start "" %CHROME_PATH% http://localhost:%PORT%
+
+set CHROME="C:\Program Files\Google\Chrome\Application\chrome.exe"
+if not exist %CHROME% set CHROME="C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
+if exist %CHROME% (
+    start "" %CHROME% http://localhost:5173
 ) else (
-    echo Chrome not found, opening default browser...
-    start http://localhost:%PORT%
+    start http://localhost:5173
 )
 
 echo.
-echo Services running. Logs: logs\scraper.log and logs\frontend.log
-echo Close the other windows to stop.
+echo Services are running in two separate windows.
+echo Close those windows to stop.
 pause
