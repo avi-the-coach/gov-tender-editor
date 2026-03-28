@@ -44,6 +44,11 @@ if (BASE) {
     res.sendFile(path.join(distPath, 'index.html'));
   });
 
+  // Exact match without trailing slash → redirect to /gov-tender-editor/
+  app.get(BASE, (req, res) => {
+    res.redirect(301, `${BASE}/`);
+  });
+
   // Redirect root to app
   app.get('/', (req, res) => {
     res.redirect(301, `${BASE}/`);
