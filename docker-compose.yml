@@ -1,0 +1,9 @@
+services:
+  gov-tender-editor:
+    build: .
+    ports:
+      - "3011:3001"
+    environment:
+      - APP_BASE_PATH=/gov-tender-editor
+      - SCRAPER_PORT=3001
+    restart: unless-stopped

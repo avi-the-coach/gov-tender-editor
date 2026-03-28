@@ -1,0 +1,7 @@
+node_modules/
+scraper-service/node_modules/
+tender-editor/node_modules/
+dist/
+.git/
+*.bat
+*.log

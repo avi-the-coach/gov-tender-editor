@@ -6,6 +6,10 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 const PORT = process.env.SCRAPER_PORT || 3001;
 
+// Base path for subpath deployment (e.g. /gov-tender-editor)
+// Empty string = serve at root (local dev)
+const BASE = (process.env.APP_BASE_PATH || '').replace(/\/$/, '');
+
 app.use(cors());
 app.use(express.json());
 
@@ -19,24 +23,41 @@ const searchLimiter = rateLimit({
 });
 
 // API Routes
-app.use('/search', searchLimiter, require('./routes/search'));
-app.use('/analyze', require('./routes/analyze'));
-app.use('/insights', require('./routes/insights'));
+app.use(`${BASE}/search`, searchLimiter, require('./routes/search'));
+app.use(`${BASE}/analyze`, require('./routes/analyze'));
+app.use(`${BASE}/insights`, require('./routes/insights'));
 
 // Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'gov-scraper', port: PORT });
+app.get(`${BASE}/health`, (req, res) => {
+  res.json({ status: 'ok', service: 'gov-scraper', port: PORT, base: BASE || '/' });
 });
 
 // Serve React frontend (production build)
 const distPath = path.join(__dirname, '../dist');
-app.use(express.static(distPath));
 
-// SPA fallback — any unmatched route serves index.html
-app.get('*', (req, res) => {
-  res.sendFile(path.join(distPath, 'index.html'));
-});
+if (BASE) {
+  // Subpath mode: serve static at /gov-tender-editor/
+  app.use(BASE, express.static(distPath));
+
+  // SPA fallback for all subpath routes
+  app.get(`${BASE}/*`, (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+
+  // Redirect root to app
+  app.get('/', (req, res) => {
+    res.redirect(301, `${BASE}/`);
+  });
+} else {
+  // Root mode: serve static at /
+  app.use(express.static(distPath));
+
+  // SPA fallback
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
 
 app.listen(PORT, () => {
-  console.log(`[scraper-service] Running on http://localhost:${PORT}`);
+  console.log(`[scraper-service] Running on http://localhost:${PORT}${BASE || '/'}`);
 });

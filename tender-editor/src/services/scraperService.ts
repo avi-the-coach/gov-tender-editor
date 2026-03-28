@@ -1,6 +1,8 @@
 import { TenderResult, InsightsResult, ResearchCard } from '../types';
 
-const SCRAPER_BASE = ''; // Same origin — Express serves both API and frontend
+// Dev: empty string (Vite proxy handles /search etc.)
+// Production: /gov-tender-editor (from .env.production via VITE_API_BASE)
+const SCRAPER_BASE = (import.meta.env.VITE_API_BASE as string) ?? '';
 
 export async function searchTenders(
   topic: string,

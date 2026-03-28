@@ -2,8 +2,9 @@ import path from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   root: './tender-editor',
+  base: command === 'build' ? '/gov-tender-editor/' : '/',
   build: {
     outDir: '../dist',
     emptyOutDir: true,
@@ -28,4 +29,4 @@ export default defineConfig({
       '@': path.resolve(__dirname, './tender-editor/src'),
     },
   },
-});
+}));
